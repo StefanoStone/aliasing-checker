@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import jellyfish
 from typing import List
@@ -23,6 +24,22 @@ class Contributor:
     def __str__(self):
         return f"Name: {self.name}, Email: {self.email}," \
                f" Commits number: {self.commits_number}, Aliases: {self.aliases}"
+
+    def __dict__(self, include_aliases=False):
+        if include_aliases:
+            return {
+                'name': self.name,
+                'email': self.email,
+                'commits_number': self.commits_number,
+                'total_commits': self.total_commits,
+                'aliases': [alias.__dict__() for alias in self.aliases]
+            }
+        else:
+            return {
+                'name': self.name,
+                'email': self.email,
+                'commits_number': self.commits_number
+            }
 
     def merge_alias(self, alias):
         self.aliases.append(alias)
@@ -133,16 +150,37 @@ def merge_aliases(edges):
 
 def export_contributors(contributors, save_path):
     os.makedirs(save_path, exist_ok=True)
-    with open(os.path.join(save_path, 'list_of_contributors.txt'), 'w') as f:
-        for contributor in contributors:
-            f.write(contributor.get_contributor_string(include_aliases=False) + '\n')
+
+    if output_mode == 'txt':
+        with open(os.path.join(save_path, 'list_of_contributors.txt'), 'w') as f:
+            for contributor in contributors:
+                f.write(contributor.get_contributor_string(include_aliases=False) + '\n')
+                return
+
+    if output_mode == 'json':
+        with open(os.path.join(save_path, 'list_of_contributors.json'), 'w') as f:
+            json.dump([contributor.__dict__() for contributor in contributors], f, indent=4)
+        return
+
+    if output_mode == 'csv':
+        return
 
 
 def export_persons(persons, save_path):
     os.makedirs(save_path, exist_ok=True)
-    with open(os.path.join(save_path, 'list_of_persons.txt'), 'w') as f:
-        for person in persons:
-            f.write(person.get_contributor_string(include_aliases=True) + '\n')
+    if output_mode == 'txt':
+        with open(os.path.join(save_path, 'list_of_persons.txt'), 'w') as f:
+            for person in persons:
+                f.write(person.get_contributor_string(include_aliases=True) + '\n')
+        return
+
+    if output_mode == 'json':
+        with open(os.path.join(save_path, 'list_of_persons.json'), 'w') as f:
+            json.dump([person.__dict__(include_aliases=True) for person in persons], f, indent=4)
+        return
+
+    if output_mode == 'csv':
+        return
 
 
 def _main(_args):
@@ -196,5 +234,5 @@ if __name__ == '__main__':
     similarity_measure = args.similarity_measure
     threshold = args.threshold
     _main(args)
-    #TODO implement json and csv output
+    #TODO implement csv output
     #TODO implement choice on arguments
