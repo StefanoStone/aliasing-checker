@@ -43,6 +43,12 @@ def get_contributors_set_from_commits(commits) -> List[Contributor]:
 
 
 def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str):
+    """
+    Filter aliases by attribute
+    :param contributors: list of contributors
+    :param attribute: attribute to filter by
+    :return: list of tuples (alias1, alias2) where alias1 and alias2 are indices of contributors that are aliases
+    """
     data = []
 
     for contributor in contributors:
@@ -84,6 +90,12 @@ def dfs(adj_list, visited, vertex, result, key):
 
 
 def merge_aliases(edges):
+    """
+    Merge aliases by considering the tuples as edges in a graph and find connected components within the graph
+    :param edges: list of tuples (alias1, alias2)
+    :return: merged aliases
+    """
+    #
     adj_list = defaultdict(list)
     for x, y in edges:
         adj_list[x].append(y)
@@ -99,6 +111,11 @@ def merge_aliases(edges):
 
 
 def _main(_args):
+    """
+    Main function
+    :param _args: command line arguments
+    :return:
+    """
     if not _args.path:
         print('Enter path to git repository:')
         _args.path = input()
