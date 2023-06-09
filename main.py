@@ -220,14 +220,6 @@ def _main(_args):
     :param _args: command line arguments
     :return:
     """
-    if not _args.repo_path:
-        print('Enter path to git repository:')
-        _args.path = input()
-
-    if not _args.output_path:
-        print('Enter path to save results:')
-        _args.output_path = input()
-
     git_repo = Repository(_args.repo_path)
     commits = git_repo.traverse_commits()
     contributors = get_contributors_set_from_commits(commits)
@@ -255,8 +247,8 @@ def _main(_args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan git repository for contributors, scan for aliases')
-    parser.add_argument('-p', '--repo-path', type=str, help='Path to git remote repository')
-    parser.add_argument('-o', '--output-path', type=str, help='Path to save results')
+    parser.add_argument('-p', '--repo-path', type=str, help='Path to git remote repository', required=True)
+    parser.add_argument('-o', '--output-path', type=str, help='Path to save results', required=True)
     parser.add_argument('-om', '--output-mode', type=str, help='Output mode, default is json', default='json',
                         choices=['json', 'csv', 'txt'])
     parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is jaro',
