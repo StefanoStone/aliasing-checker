@@ -25,7 +25,7 @@ class Contributor:
                f" Commits number: {self.commits_number}, Aliases: {self.aliases}"
 
     def merge_alias(self, alias):
-        self.aliases.append((alias.name, alias.email, alias.commits_number))
+        self.aliases.append(alias)
         self.total_commits += alias.total_commits
 
     def get_contributor_string(self, include_aliases=False):
@@ -36,11 +36,11 @@ class Contributor:
 
             return f"Name: {self.name}, Email: {self.email}," \
                    f" Commits number: {self.commits_number}, Known aliases: [" \
-                   f"{'; '.join([f'Name: {alias[0]}, Email: {alias[1]}, Commits number {alias[2]}' for alias in self.aliases])}]" \
+                   f"{'; '.join([alias.get_contributor_string() for alias in self.aliases])}]" \
                    f" Total commits: {self.total_commits}"
-        else:
-            return f"Name: {self.name}, Email: {self.email}," \
-                   f" Commits number: {self.commits_number}"
+
+        return f"Name: {self.name}, Email: {self.email}," \
+               f" Commits number: {self.commits_number}"
 
 
 def get_contributors_set_from_commits(commits) -> List[Contributor]:
@@ -92,8 +92,14 @@ def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str)
 
 
 def is_alias(string1, string2):
-    # TODO change heuristics to something more sophisticated
-    return jellyfish.jaro_distance(string1, string2) > 0.70
+    if similarity_measure == 'jaro':
+        return jellyfish.jaro_distance(string1, string2) > 0.70
+
+    if similarity_measure == 'levenshtein':
+        return jellyfish.levenshtein_distance(string1, string2) < 5
+
+    if similarity_measure == 'hamming':
+        return jellyfish.hamming_distance(string1, string2) < 5
 
 
 def dfs(adj_list, visited, vertex, result, key):
@@ -178,6 +184,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan git repository for contributors, scan for aliases')
     parser.add_argument('-p', '--repo-path', type=str, help='Path to git remote repository')
     parser.add_argument('-o', '--output-path', type=str, help='Path to save results')
+    parser.add_argument('-om', '--output-mode', type=str, help='Output mode, default is json', default='json',
+                        choices=['json', 'csv', 'txt'])
+    parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is jaro',
+                        default='jaro', choices=['jaro', 'levenshtein', 'hamming'])
+    parser.add_argument('-t', '--threshold', type=float, help='Threshold for similarity measure, default is' +
+                                                              ' > 0.70 for jaro, < 5 for levenshtein and hamming',
+                        default=0.70)
 
     args = parser.parse_args()
+    output_mode = args.output_mode
+    similarity_measure = args.similarity_measure
     _main(args)
+    #TODO implement json and csv output
+    #TODO implement choice on arguments
