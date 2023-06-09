@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import csv
 import jellyfish
 from typing import List
 from pydriller import Repository
@@ -8,13 +9,15 @@ from collections import defaultdict
 
 
 class Contributor:
+    id = 0
     name = ''
     email = ''
     commits_number = 0
     total_commits = 0
     aliases = []
 
-    def __init__(self, name, email, commits_number):
+    def __init__(self, _id, name, email, commits_number):
+        self.id = _id
         self.name = name
         self.email = email
         self.commits_number = commits_number
@@ -22,8 +25,14 @@ class Contributor:
         self.aliases = []
 
     def __str__(self):
-        return f"Name: {self.name}, Email: {self.email}," \
+        return f"Id: {self.id}, Name: {self.name}, Email: {self.email}," \
                f" Commits number: {self.commits_number}, Aliases: {self.aliases}"
+
+    def __iter__(self):
+        return iter([self.id, self.name, self.email, self.commits_number])
+
+    def __data__(self):
+        return [self.id, self.name, self.email, self.commits_number]
 
     def __dict__(self, include_aliases=False):
         if include_aliases:
@@ -67,8 +76,8 @@ def get_contributors_set_from_commits(commits) -> List[Contributor]:
     contributors_set = set(contributors)
 
     contributors_list = []
-    for contributor in contributors_set:
-        contributor_object = Contributor(contributor[0], contributor[1], contributors.count(contributor))
+    for index, contributor in zip(range(len(contributors_set)), contributors_set):
+        contributor_object = Contributor(index, contributor[0], contributor[1], contributors.count(contributor))
         contributors_list.append(contributor_object)
 
     return contributors_list
@@ -118,6 +127,10 @@ def is_alias(string1, string2):
     if similarity_measure == 'hamming':
         return jellyfish.hamming_distance(string1, string2) < (threshold if threshold else 5)
 
+    if similarity_measure == 'custom':
+        #TODO: implement custom similarity measure
+        return 0
+
 
 def dfs(adj_list, visited, vertex, result, key):
     visited.add(vertex)
@@ -152,34 +165,52 @@ def export_contributors(contributors, save_path):
     os.makedirs(save_path, exist_ok=True)
 
     if output_mode == 'txt':
-        with open(os.path.join(save_path, 'list_of_contributors.txt'), 'w') as f:
+        with open(os.path.join(save_path, 'list_of_contributors.txt'), 'w', encoding='utf8') as f:
             for contributor in contributors:
                 f.write(contributor.get_contributor_string(include_aliases=False) + '\n')
                 return
 
     if output_mode == 'json':
-        with open(os.path.join(save_path, 'list_of_contributors.json'), 'w') as f:
+        with open(os.path.join(save_path, 'list_of_contributors.json'), 'w', encoding='utf8') as f:
             json.dump([contributor.__dict__() for contributor in contributors], f, indent=4)
         return
 
     if output_mode == 'csv':
+        with open(os.path.join(save_path, 'list_of_contributors.csv'), 'w', encoding='utf8', newline='') as stream:
+            writer = csv.writer(stream)
+            writer.writerow(['id', 'name', 'email', 'commits'])
+            writer.writerows(contributors)
         return
 
 
 def export_persons(persons, save_path):
     os.makedirs(save_path, exist_ok=True)
     if output_mode == 'txt':
-        with open(os.path.join(save_path, 'list_of_persons.txt'), 'w') as f:
+        with open(os.path.join(save_path, 'list_of_persons.txt'), 'w', encoding='utf8') as f:
             for person in persons:
                 f.write(person.get_contributor_string(include_aliases=True) + '\n')
         return
 
     if output_mode == 'json':
-        with open(os.path.join(save_path, 'list_of_persons.json'), 'w') as f:
+        with open(os.path.join(save_path, 'list_of_persons.json'), 'w', encoding='utf8') as f:
             json.dump([person.__dict__(include_aliases=True) for person in persons], f, indent=4)
         return
 
     if output_mode == 'csv':
+        _list = []
+        for person in persons:
+            person_dict = person.__data__()
+            person_dict.append(None)
+            _list.append(person_dict)
+            for alias in person.aliases:
+                alias_dict = alias.__data__()
+                alias_dict.append(person.id)
+                _list.append(alias_dict)
+
+        with open(os.path.join(save_path, 'list_of_persons.csv'), 'w', encoding='utf8', newline='') as stream:
+            writer = csv.writer(stream)
+            writer.writerow(['id', 'name', 'email', 'commits', 'alias_of'])
+            writer.writerows(iter(_list))
         return
 
 
@@ -229,7 +260,7 @@ if __name__ == '__main__':
     parser.add_argument('-om', '--output-mode', type=str, help='Output mode, default is json', default='json',
                         choices=['json', 'csv', 'txt'])
     parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is jaro',
-                        default='jaro', choices=['jaro', 'levenshtein', 'hamming'])
+                        default='jaro', choices=['jaro', 'levenshtein', 'hamming', 'custom'])
     parser.add_argument('-t', '--threshold', type=float, help='Threshold for similarity measure, default is' +
                                                               ' > 0.70 for jaro, < 5 for levenshtein and hamming')
     parser.add_argument('-a', '--attribute', type=str, help='Attribute to use for alias detection, default is all',
@@ -240,4 +271,3 @@ if __name__ == '__main__':
     similarity_measure = args.similarity_measure
     threshold = args.threshold
     _main(args)
-    #TODO implement csv output
