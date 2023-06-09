@@ -93,13 +93,13 @@ def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str)
 
 def is_alias(string1, string2):
     if similarity_measure == 'jaro':
-        return jellyfish.jaro_distance(string1, string2) > 0.70
+        return jellyfish.jaro_distance(string1, string2) > (threshold if threshold else 0.70)
 
     if similarity_measure == 'levenshtein':
-        return jellyfish.levenshtein_distance(string1, string2) < 5
+        return jellyfish.levenshtein_distance(string1, string2) < (threshold if threshold else 5)
 
     if similarity_measure == 'hamming':
-        return jellyfish.hamming_distance(string1, string2) < 5
+        return jellyfish.hamming_distance(string1, string2) < (threshold if threshold else 5)
 
 
 def dfs(adj_list, visited, vertex, result, key):
@@ -189,12 +189,12 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is jaro',
                         default='jaro', choices=['jaro', 'levenshtein', 'hamming'])
     parser.add_argument('-t', '--threshold', type=float, help='Threshold for similarity measure, default is' +
-                                                              ' > 0.70 for jaro, < 5 for levenshtein and hamming',
-                        default=0.70)
+                                                              ' > 0.70 for jaro, < 5 for levenshtein and hamming')
 
     args = parser.parse_args()
     output_mode = args.output_mode
     similarity_measure = args.similarity_measure
+    threshold = args.threshold
     _main(args)
     #TODO implement json and csv output
     #TODO implement choice on arguments
