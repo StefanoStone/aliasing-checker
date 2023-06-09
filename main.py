@@ -145,14 +145,14 @@ def _main(_args):
         print('Enter path to git repository:')
         _args.path = input()
 
-    if not _args.saving_path:
+    if not _args.output_path:
         print('Enter path to save results:')
-        _args.saving_path = input()
+        _args.output_path = input()
 
     git_repo = Repository(_args.repo_path)
     commits = git_repo.traverse_commits()
     contributors = get_contributors_set_from_commits(commits)
-    export_contributors(contributors, _args.saving_path)
+    export_contributors(contributors, _args.output_path)
 
     aliases_by_email = filter_aliases_by_attribute(contributors, 'email')
     aliases_by_name = filter_aliases_by_attribute(contributors, 'name')
@@ -167,13 +167,13 @@ def _main(_args):
             index_to_delete.append(alias[i])
 
     persons = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
-    export_persons(persons, _args.saving_path)
+    export_persons(persons, _args.output_path)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan git repository for contributors, scan for aliases')
     parser.add_argument('-p', '--repo-path', type=str, help='Path to git remote repository')
-    parser.add_argument('-s', '--saving-path', type=str, help='Path to save results')
+    parser.add_argument('-o', '--output-path', type=str, help='Path to save results')
 
     args = parser.parse_args()
     _main(args)
