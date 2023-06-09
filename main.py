@@ -1,4 +1,5 @@
 import argparse
+import os
 import jellyfish
 from typing import List
 from pydriller import Repository
@@ -9,12 +10,14 @@ class Contributor:
     name = ''
     email = ''
     commits_number = 0
+    total_commits = 0
     aliases = []
 
     def __init__(self, name, email, commits_number):
         self.name = name
         self.email = email
         self.commits_number = commits_number
+        self.total_commits = commits_number
         self.aliases = []
 
     def __str__(self):
@@ -22,10 +25,18 @@ class Contributor:
                f" Commits number: {self.commits_number}, Aliases: {self.aliases}"
 
     def merge_alias(self, alias):
-        self.commits_number += alias.commits_number
-        self.aliases.append((alias.name, alias.email))
-        self.aliases = self.aliases + alias.aliases
-        self.aliases = list(set(self.aliases))
+        self.aliases.append((alias.name, alias.email, alias.commits_number))
+        self.total_commits += alias.total_commits
+
+    def get_contributor_string(self, include_aliases=False):
+        if include_aliases:
+            return f"Name: {self.name}, Email: {self.email}," \
+                   f" Commits number: {self.commits_number}, Known aliases: [" \
+                   f"{'; '.join([f'Name: {alias[0]}, Email: {alias[1]}, Commits number {alias[2]}' for alias in self.aliases])}]" \
+                   f" Total commits: {self.total_commits}"
+        else:
+            return f"Name: {self.name}, Email: {self.email}," \
+                   f" Commits number: {self.commits_number}"
 
 
 def get_contributors_set_from_commits(commits) -> List[Contributor]:
@@ -110,22 +121,38 @@ def merge_aliases(edges):
     return result.values()
 
 
+def export_contributors(contributors, save_path):
+    os.makedirs(save_path, exist_ok=True)
+    with open(os.path.join(save_path, 'list_of_contributors.txt'), 'w') as f:
+        for contributor in contributors:
+            f.write(contributor.get_contributor_string(include_aliases=False) + '\n')
+
+
+def export_persons(persons, save_path):
+    os.makedirs(save_path, exist_ok=True)
+    with open(os.path.join(save_path, 'list_of_persons.txt'), 'w') as f:
+        for person in persons:
+            f.write(person.get_contributor_string(include_aliases=True) + '\n')
+
+
 def _main(_args):
     """
     Main function
     :param _args: command line arguments
     :return:
     """
-    if not _args.path:
+    if not _args.repo_path:
         print('Enter path to git repository:')
         _args.path = input()
 
-    git_repo = Repository(_args.path)
+    if not _args.saving_path:
+        print('Enter path to save results:')
+        _args.saving_path = input()
+
+    git_repo = Repository(_args.repo_path)
     commits = git_repo.traverse_commits()
     contributors = get_contributors_set_from_commits(commits)
-    print(f'\nContributors before filter names (len = {len(contributors)}):')
-    for contributor in contributors:
-        print(contributor)
+    export_contributors(contributors, _args.saving_path)
 
     aliases_by_email = filter_aliases_by_attribute(contributors, 'email')
     aliases_by_name = filter_aliases_by_attribute(contributors, 'name')
@@ -139,15 +166,14 @@ def _main(_args):
             contributors[alias[0]].merge_alias(contributors[alias[i]])
             index_to_delete.append(alias[i])
 
-    contributors = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
-    print(f'\nContributors after filter names (len = {len(contributors)}):')
-    for contributor in contributors:
-        print(contributor)
+    persons = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
+    export_persons(persons, _args.saving_path)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan git repository for contributors, scan for aliases')
-    parser.add_argument('-p', '--path', type=str, help='Path to git remote repository')
+    parser.add_argument('-p', '--repo-path', type=str, help='Path to git remote repository')
+    parser.add_argument('-s', '--saving-path', type=str, help='Path to save results')
 
     args = parser.parse_args()
     _main(args)
