@@ -202,11 +202,15 @@ def _main(_args):
     contributors = get_contributors_set_from_commits(commits)
     export_contributors(contributors, _args.output_path)
 
-    aliases_by_email = filter_aliases_by_attribute(contributors, 'email')
-    aliases_by_name = filter_aliases_by_attribute(contributors, 'name')
-    aliases = list(set(aliases_by_email + aliases_by_name))
-    aliases = sorted(aliases, key=lambda x: x[0])
-    aliases = merge_aliases(aliases)
+    if _args.attribute == 'all':
+        aliases_by_email = filter_aliases_by_attribute(contributors, 'email')
+        aliases_by_name = filter_aliases_by_attribute(contributors, 'name')
+        aliases = list(set(aliases_by_email + aliases_by_name))
+        aliases = sorted(aliases, key=lambda x: x[0])
+        aliases = merge_aliases(aliases)
+    else:
+        aliases = filter_aliases_by_attribute(contributors, _args.attribute)
+        aliases = sorted(aliases, key=lambda x: x[0])
 
     index_to_delete = []
     for alias in aliases:
@@ -228,6 +232,8 @@ if __name__ == '__main__':
                         default='jaro', choices=['jaro', 'levenshtein', 'hamming'])
     parser.add_argument('-t', '--threshold', type=float, help='Threshold for similarity measure, default is' +
                                                               ' > 0.70 for jaro, < 5 for levenshtein and hamming')
+    parser.add_argument('-a', '--attribute', type=str, help='Attribute to use for alias detection, default is all',
+                        default='all', choices=['all', 'email', 'name'])
 
     args = parser.parse_args()
     output_mode = args.output_mode
@@ -235,4 +241,3 @@ if __name__ == '__main__':
     threshold = args.threshold
     _main(args)
     #TODO implement csv output
-    #TODO implement choice on arguments
