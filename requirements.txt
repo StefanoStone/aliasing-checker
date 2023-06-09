@@ -1,1 +1,2 @@
+jellyfish==0.11.2
 pydriller==2.5
