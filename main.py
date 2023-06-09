@@ -23,6 +23,8 @@ class Contributor:
     def merge_alias(self, alias):
         self.commits_number += alias.commits_number
         self.aliases.append((alias.name, alias.email))
+        self.aliases = self.aliases + alias.aliases
+        self.aliases = list(set(self.aliases))
 
 
 def get_contributors_set_from_commits(commits) -> List[Contributor]:
@@ -60,18 +62,16 @@ def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str)
             if i == j:
                 continue
 
-            if compare_strings(value, data[j]) > 0.70:
-                contributors[i].merge_alias(contributors[j])
-                detected_aliases.append(j)
+            if compare_strings(value, data[j]):
+                if (j, i) not in detected_aliases:
+                    detected_aliases.append((i, j))
 
-    contributors = list(filter(lambda x: contributors.index(x) not in detected_aliases, contributors))
-
-    return contributors
+    return detected_aliases
 
 
 def compare_strings(string1, string2):
     # TODO change heuristics to something more sophisticated
-    return jellyfish.jaro_distance(string1, string2)
+    return jellyfish.jaro_distance(string1, string2) > 0.70
 
 
 def _main(_args):
@@ -82,22 +82,24 @@ def _main(_args):
     git_repo = Repository(_args.path)
     commits = git_repo.traverse_commits()
     contributors = get_contributors_set_from_commits(commits)
-    print(f'Contributors before filter names (len = {len(contributors)}):')
+    print(f'\nContributors before filter names (len = {len(contributors)}):')
     for contributor in contributors:
         print(contributor)
 
-    filtered_contributors = filter_aliases_by_attribute(contributors, 'email')
-    print('\n')
-    print('\n')
-    print(f'Contributors after filter email (len = {len(filtered_contributors)}):')
-    for contributor in filtered_contributors:
-        print(contributor)
+    aliases_by_email = filter_aliases_by_attribute(contributors, 'email')
+    print(f'Aliases by email (len = {len(aliases_by_email)}):', aliases_by_email)
+    aliases_by_name = filter_aliases_by_attribute(contributors, 'name')
+    print(f'Aliases by name (len = {len(aliases_by_name)}):', aliases_by_name)
+    aliases = list(set(aliases_by_email + aliases_by_name))
+    print(f'Aliases (len = {len(aliases)}):', aliases)
 
-    filtered_contributors = filter_aliases_by_attribute(filtered_contributors, 'name')
-    print('\n')
-    print('\n')
-    print(f'Contributors after filter names (len = {len(filtered_contributors)}):')
-    for contributor in filtered_contributors:
+    for i in range(len(contributors)):
+        for alias in aliases:
+            if i == alias[0]:
+                contributors[i].merge_alias(contributors[alias[1]])
+
+    print(f'\nContributors after filter names (len = {len(contributors)}):')
+    for contributor in contributors:
         print(contributor)
 
 
