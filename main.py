@@ -30,6 +30,10 @@ class Contributor:
 
     def get_contributor_string(self, include_aliases=False):
         if include_aliases:
+            if len(self.aliases) == 0:
+                return f"Name: {self.name}, Email: {self.email}," \
+                       f" Commits number: {self.commits_number}, Total commits: {self.total_commits}, No Known aliases"
+
             return f"Name: {self.name}, Email: {self.email}," \
                    f" Commits number: {self.commits_number}, Known aliases: [" \
                    f"{'; '.join([f'Name: {alias[0]}, Email: {alias[1]}, Commits number {alias[2]}' for alias in self.aliases])}]" \
