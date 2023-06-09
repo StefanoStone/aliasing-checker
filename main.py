@@ -1,5 +1,37 @@
 import argparse
-from pydriller import *
+from typing import List
+from pydriller import Repository
+
+
+class Contributor:
+    name = ''
+    email = ''
+    commits_number = 0
+    aliases = []
+
+    def __init__(self, name, email, commits_number):
+        self.name = name
+        self.email = email
+        self.commits_number = commits_number
+        self.aliases = []
+
+    def __str__(self):
+        return f"Name: {self.name}, Email: {self.email}," \
+               f" Commits number: {self.commits_number}"
+
+
+def get_contributors_set_from_commits(commits) -> List[Contributor]:
+    contributors = []
+    for commit in commits:
+        contributors.append((commit.author.name, commit.author.email))
+    contributors_set = set(contributors)
+
+    contributors_list = []
+    for contributor in contributors_set:
+        contributor_object = Contributor(contributor[0], contributor[1], contributors.count(contributor))
+        contributors_list.append(contributor_object)
+
+    return contributors_list
 
 
 def _main(_args):
@@ -9,8 +41,9 @@ def _main(_args):
 
     git_repo = Repository(_args.path)
     commits = git_repo.traverse_commits()
-    for commit in commits:
-        print(commit.hash)
+    contributors = get_contributors_set_from_commits(commits)
+    for contributor in contributors:
+        print(contributor)
 
 
 if __name__ == '__main__':
