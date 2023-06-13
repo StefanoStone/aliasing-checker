@@ -300,9 +300,16 @@ def _main(_args):
         aliases = sorted(aliases, key=lambda x: x[0])
 
     index_to_delete = []
+    index_with_highest_commits = 0
+    for index, alias in enumerate(aliases):
+        if contributors[alias].commits_number > contributors[aliases[index_with_highest_commits]].commits_number:
+            index_with_highest_commits = index
     for alias in aliases:
-        for i in range(1, len(alias)):
-            contributors[alias[0]].merge_alias(contributors[alias[i]])
+        for i in range(0, len(alias)):
+            if i == index_with_highest_commits:
+                continue
+
+            contributors[alias[index_with_highest_commits]].merge_alias(contributors[alias[i]])
             index_to_delete.append(alias[i])
 
     persons = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
