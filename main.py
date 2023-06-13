@@ -220,21 +220,62 @@ def export_persons(persons, save_path):
         return
 
 
+def get_working_branches(contributor):
+    branches = []
+    for commit in contributor.commits:
+        branches.extend(commit.branches)
+
+    return list(set(branches))
+
+
+def get_working_files(contributor):
+    files = []
+    for commit in contributor.commits:
+        files.extend(commit.modified_files)
+
+    return list(set(files))
+
+
 def perform_custom_heuristics(persons):
+    new_persons = []
+
     for person in persons:
         # if the similarity heuristic is not satisfied, then the person has no aliases to check
         if len(person.aliases) == 0:
+            new_persons.append(person)
             continue
 
-        accounts = person.aliases + [person]
-        print(f'Checking {person.name} with {len(accounts)} accounts')
-        for account in accounts:
-            print(f'Checking {account.name} {account.email} with {len(account.commits)} commits')
-            for commit in account.commits:
-                print(f'Checking commit {commit.hash}, date {commit.author_date},'
-                      f' branch {commit.branches}, files {commit.files}')
-        print('------------------')
-        break
+        person_branches = get_working_branches(person)
+        person_files = get_working_files(person)
+
+        for alias in person.aliases:
+            # if the alias has the same name or email as the person, then it is an alias
+            if alias.name == person.name or alias.email == person.email:
+                continue
+
+            # if the alias has more than 20 commits, it is probably not an alias
+            if len(alias.commits) > 20:
+                new_persons.append(alias)
+                person.aliases.remove(alias)
+                continue
+
+            # if the alias worked on different branches than the person, then it is probably not an alias
+            alias_branches = get_working_branches(alias)
+            if len(set(person_branches).intersection(set(alias_branches))) == 0:
+                new_persons.append(alias)
+                person.aliases.remove(alias)
+                continue
+
+            # if the alias worked on different files than the person, then it is probably not an alias
+            alias_files = get_working_files(alias)
+            if len(set(person_files).intersection(set(alias_files))) == 0:
+                new_persons.append(alias)
+                person.aliases.remove(alias)
+                continue
+
+        new_persons.append(person)
+
+    return new_persons
 
 
 def _main(_args):
@@ -243,7 +284,8 @@ def _main(_args):
     :param _args: command line arguments
     :return:
     """
-    git_repo = Repository(_args.repo_path, only_no_merge=True)
+    os.makedirs('/tmp', exist_ok=True)
+    git_repo = Repository(_args.repo_path, only_no_merge=True, clone_repo_to='/tmp')
     commits = list(git_repo.traverse_commits())
     contributors = get_contributors_set_from_commits(commits)
 
@@ -266,7 +308,7 @@ def _main(_args):
     persons = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
 
     if similarity_measure == 'custom':
-        perform_custom_heuristics(persons)
+        persons = perform_custom_heuristics(persons)
 
     export_contributors(contributors, _args.output_path)
     export_persons(persons, _args.output_path)
