@@ -73,6 +73,9 @@ class Contributor:
 def get_contributors_set_from_commits(commits) -> List[Contributor]:
     contributors = []
     for commit in commits:
+        if commit.merge:
+            continue
+
         contributors.append((commit.author.name, commit.author.email))
     contributors_set = set(contributors)
 
@@ -81,7 +84,7 @@ def get_contributors_set_from_commits(commits) -> List[Contributor]:
         commits_list = []
         for commit in commits:
             # save all commits of the contributor
-            if contributor == (commit.author.name, commit.author.email):
+            if contributor == (commit.author.name, commit.author.email) and not commit.merge:
                 commits_list.append(commit)
 
         contributor_object = Contributor(index, contributor[0], contributor[1], commits_list)
@@ -218,7 +221,20 @@ def export_persons(persons, save_path):
 
 
 def perform_custom_heuristics(persons):
-    pass
+    for person in persons:
+        # if the similarity heuristic is not satisfied, then the person has no aliases to check
+        if len(person.aliases) == 0:
+            continue
+
+        accounts = person.aliases + [person]
+        print(f'Checking {person.name} with {len(accounts)} accounts')
+        for account in accounts:
+            print(f'Checking {account.name} {account.email} with {len(account.commits)} commits')
+            for commit in account.commits:
+                print(f'Checking commit {commit.hash}, date {commit.author_date},'
+                      f' branch {commit.branches}, files {commit.files}')
+        print('------------------')
+        break
 
 
 def _main(_args):
@@ -227,7 +243,7 @@ def _main(_args):
     :param _args: command line arguments
     :return:
     """
-    git_repo = Repository(_args.repo_path)
+    git_repo = Repository(_args.repo_path, only_no_merge=True)
     commits = list(git_repo.traverse_commits())
     contributors = get_contributors_set_from_commits(commits)
 
@@ -262,9 +278,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-path', type=str, help='Path to save results', required=True)
     parser.add_argument('-om', '--output-mode', type=str, help='Output mode, default is json', default='json',
                         choices=['json', 'csv', 'txt'])
-    parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is jaro.' +
-                                                                     ' Custom uses jaro with some post processing.',
-                        default='jaro', choices=['jaro', 'levenshtein', 'hamming', 'custom'])
+    parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is custom' +
+                                                                     ' (jaro with some post processing)',
+                        default='custom', choices=['jaro', 'levenshtein', 'hamming', 'custom'])
     parser.add_argument('-t', '--threshold', type=float, help='Threshold for similarity measure, default is' +
                                                               ' > 0.70 for jaro, < 5 for levenshtein and hamming')
     parser.add_argument('-a', '--attribute', type=str, help='Attribute to use for alias detection, default is all',
