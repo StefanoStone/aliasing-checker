@@ -16,12 +16,13 @@ class Contributor:
     total_commits = 0
     aliases = []
 
-    def __init__(self, _id, name, email, commits_number):
+    def __init__(self, _id, name, email, commits):
         self.id = _id
         self.name = name
         self.email = email
-        self.commits_number = commits_number
-        self.total_commits = commits_number
+        self.commits_number = len(commits)
+        self.total_commits = len(commits)
+        self.commits = commits
         self.aliases = []
 
     def __str__(self):
@@ -76,8 +77,14 @@ def get_contributors_set_from_commits(commits) -> List[Contributor]:
     contributors_set = set(contributors)
 
     contributors_list = []
-    for index, contributor in zip(range(len(contributors_set)), contributors_set):
-        contributor_object = Contributor(index, contributor[0], contributor[1], contributors.count(contributor))
+    for index, contributor in enumerate(contributors_set):
+        commits_list = []
+        for commit in commits:
+            # save all commits of the contributor
+            if contributor == (commit.author.name, commit.author.email):
+                commits_list.append(commit)
+
+        contributor_object = Contributor(index, contributor[0], contributor[1], commits_list)
         contributors_list.append(contributor_object)
 
     return contributors_list
@@ -118,7 +125,7 @@ def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str)
 
 
 def is_alias(string1, string2):
-    if similarity_measure == 'jaro':
+    if similarity_measure == 'jaro' or similarity_measure == 'custom':
         return jellyfish.jaro_distance(string1, string2) > (threshold if threshold else 0.70)
 
     if similarity_measure == 'levenshtein':
@@ -126,10 +133,6 @@ def is_alias(string1, string2):
 
     if similarity_measure == 'hamming':
         return jellyfish.hamming_distance(string1, string2) < (threshold if threshold else 5)
-
-    if similarity_measure == 'custom':
-        #TODO: implement custom similarity measure
-        return 0
 
 
 def dfs(adj_list, visited, vertex, result, key):
@@ -214,6 +217,10 @@ def export_persons(persons, save_path):
         return
 
 
+def perform_custom_heuristics(persons):
+    pass
+
+
 def _main(_args):
     """
     Main function
@@ -221,9 +228,8 @@ def _main(_args):
     :return:
     """
     git_repo = Repository(_args.repo_path)
-    commits = git_repo.traverse_commits()
+    commits = list(git_repo.traverse_commits())
     contributors = get_contributors_set_from_commits(commits)
-    export_contributors(contributors, _args.output_path)
 
     if _args.attribute == 'all':
         aliases_by_email = filter_aliases_by_attribute(contributors, 'email')
@@ -242,6 +248,11 @@ def _main(_args):
             index_to_delete.append(alias[i])
 
     persons = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
+
+    if similarity_measure == 'custom':
+        perform_custom_heuristics(persons)
+
+    export_contributors(contributors, _args.output_path)
     export_persons(persons, _args.output_path)
 
 
@@ -251,7 +262,8 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-path', type=str, help='Path to save results', required=True)
     parser.add_argument('-om', '--output-mode', type=str, help='Output mode, default is json', default='json',
                         choices=['json', 'csv', 'txt'])
-    parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is jaro',
+    parser.add_argument('-m', '--similarity-measure', type=str, help='Similarity measure to use, default is jaro.' +
+                                                                     ' Custom uses jaro with some post processing.',
                         default='jaro', choices=['jaro', 'levenshtein', 'hamming', 'custom'])
     parser.add_argument('-t', '--threshold', type=float, help='Threshold for similarity measure, default is' +
                                                               ' > 0.70 for jaro, < 5 for levenshtein and hamming')
