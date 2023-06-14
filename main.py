@@ -204,6 +204,8 @@ def export_persons(persons, save_path):
         return
 
     if output_mode == 'csv':
+        # puts a column named alias_of at the end of the csv file, which is the id of the person that the alias belongs
+        # to if the alias belongs to a person, otherwise it is None
         _list = []
         for person in persons:
             person_dict = person.__data__()
