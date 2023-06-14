@@ -289,6 +289,7 @@ def _main(_args):
     commits = list(git_repo.traverse_commits())
     contributors = get_contributors_set_from_commits(commits)
 
+    # gather aliases based on the attributes selected by the user
     if _args.attribute == 'all':
         aliases_by_email = filter_aliases_by_attribute(contributors, 'email')
         aliases_by_name = filter_aliases_by_attribute(contributors, 'name')
@@ -299,6 +300,7 @@ def _main(_args):
         aliases = filter_aliases_by_attribute(contributors, _args.attribute)
         aliases = sorted(aliases, key=lambda x: x[0])
 
+    # group aliases in person objects (the person will be the contributor with the most commits)
     index_to_delete = []
     for alias_group in aliases:
         index_with_highest_commits = 0
@@ -316,9 +318,11 @@ def _main(_args):
 
     persons = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
 
+    # perform custom heuristics to remove false positives
     if similarity_measure == 'custom':
         persons = perform_custom_heuristics(persons)
 
+    # save results in the desired format
     export_contributors(contributors, _args.output_path)
     export_persons(persons, _args.output_path)
 
