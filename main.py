@@ -352,7 +352,7 @@ def _main(_args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan git repository for contributors, scan for aliases')
-    parser.add_argument('-p', '--repo-path', type=str, help='Path to git remote repository', required=True)
+    parser.add_argument('-p', '--repo-path', type=str, help='Path to git repository (local or remote)', required=True)
     parser.add_argument('-o', '--output-path', type=str, help='Path to save results', required=True)
     parser.add_argument('-om', '--output-mode', type=str, help='Output mode, default is json', default='json',
                         choices=['json', 'csv', 'txt'])
