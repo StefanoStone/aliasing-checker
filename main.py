@@ -175,7 +175,7 @@ def export_contributors(contributors, save_path):
         with open(os.path.join(save_path, 'list_of_contributors.txt'), 'w', encoding='utf8') as f:
             for contributor in contributors:
                 f.write(contributor.get_contributor_string(include_aliases=False) + '\n')
-            return
+        return
 
     if output_mode == 'json':
         with open(os.path.join(save_path, 'list_of_contributors.json'), 'w', encoding='utf8') as f:
