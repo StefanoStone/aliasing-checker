@@ -3,6 +3,7 @@ import json
 import os
 import csv
 import jellyfish
+import datetime
 from typing import List
 from pydriller import Repository
 from collections import defaultdict
@@ -236,8 +237,17 @@ def get_working_files(contributor):
     return list(set(files))
 
 
+def get_working_date_range(contributor):
+    dates = []
+    for commit in contributor.commits:
+        dates.append(commit.date)
+
+    return min(dates), max(dates)
+
+
 def perform_custom_heuristics(persons):
     new_persons = []
+    week_delta = datetime.timedelta(days=7)
 
     for person in persons:
         # if the similarity heuristic is not satisfied, then the person has no aliases to check
@@ -247,6 +257,7 @@ def perform_custom_heuristics(persons):
 
         person_branches = get_working_branches(person)
         person_files = get_working_files(person)
+        person_start_date, person_end_date = get_working_date_range(person)
 
         for alias in person.aliases:
             # if the alias has the same name or email as the person, then it is an alias
@@ -269,6 +280,16 @@ def perform_custom_heuristics(persons):
             # if the alias worked on different files than the person, then it is probably not an alias
             alias_files = get_working_files(alias)
             if len(set(person_files).intersection(set(alias_files))) == 0:
+                new_persons.append(alias)
+                person.aliases.remove(alias)
+                continue
+
+            # if the alias worked on different dates than the person, then it is probably not an alias
+            # consider a week delta to account for the fact that the person and the alias might have worked
+            # on the same project, but at different times
+            alias_start_date, alias_end_date = get_working_date_range(alias)
+            if alias_start_date > (person_end_date + week_delta)\
+                    or alias_end_date < (person_start_date + week_delta):
                 new_persons.append(alias)
                 person.aliases.remove(alias)
                 continue
