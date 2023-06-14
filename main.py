@@ -240,7 +240,7 @@ def get_working_files(contributor):
 def get_working_date_range(contributor):
     dates = []
     for commit in contributor.commits:
-        dates.append(commit.date)
+        dates.append(commit.committer_date)
 
     return min(dates), max(dates)
 
