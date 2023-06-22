@@ -1,9 +1,11 @@
 import argparse
 import json
 import os
+import re
 import csv
 import jellyfish
 import datetime
+
 from typing import List
 from pydriller import Repository
 from collections import defaultdict
@@ -94,6 +96,15 @@ def get_contributors_set_from_commits(commits) -> List[Contributor]:
     return contributors_list
 
 
+def extract_name_from_email(email):
+    # check with regex if the email is valid
+    if not re.match(r"^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$", email):
+        return email
+
+    name, domain = email.rsplit('@', 1)  # the real @ will be the last one
+    return name
+
+
 def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str):
     """
     Filter aliases by attribute
@@ -105,8 +116,7 @@ def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str)
 
     for contributor in contributors:
         if attribute == 'email':
-            _id, domain = contributor.email.rsplit('@', 1)  # the real @ will be the last one
-            data.append(_id)
+            data.append(extract_name_from_email(contributor.email))
         elif attribute == 'name':
             data.append(contributor.name)
         else:
