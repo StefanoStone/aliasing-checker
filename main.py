@@ -3,8 +3,10 @@ import json
 import os
 import re
 import csv
+import shutil
 import jellyfish
 import datetime
+import subprocess
 
 from typing import List
 from pydriller import Repository
@@ -246,6 +248,7 @@ def get_working_files(contributor):
     for commit in contributor.commits:
         files.extend(commit.modified_files)
 
+    print(files, len(files))
     return list(set(files))
 
 
@@ -311,6 +314,22 @@ def perform_custom_heuristics(persons):
     return new_persons
 
 
+def init_git_submodules(repo_name):
+    """
+    Initializes and clones the git submodules of a repository
+    :param repo_name:
+    :return:
+    """
+    p = subprocess.Popen(['git', 'submodule', 'init'], cwd='/tmp/{}'.format(repo_name),
+                         stdout=subprocess.DEVNULL,
+                         stderr=subprocess.STDOUT)
+    p.wait()
+    p = subprocess.Popen(['git', 'submodule', 'update'], cwd='/tmp/{}'.format(repo_name),
+                         stdout=subprocess.DEVNULL,
+                         stderr=subprocess.STDOUT)
+    p.wait()
+
+
 def _main(_args):
     """
     Main function
@@ -319,6 +338,11 @@ def _main(_args):
     """
     os.makedirs('/tmp', exist_ok=True)
     git_repo = Repository(_args.repo_path, only_no_merge=True, clone_repo_to='/tmp')
+    repo_name = _args.repo_path.split('/')[-1]
+
+    if os.path.exists('/tmp/{}/.gitmodules'.format(repo_name)):
+        init_git_submodules(repo_name)
+
     commits = list(git_repo.traverse_commits())
     contributors = get_contributors_set_from_commits(commits)
 
@@ -358,6 +382,9 @@ def _main(_args):
     # save results in the desired format
     export_contributors(contributors, _args.output_path)
     export_persons(persons, _args.output_path)
+
+    # remove the cloned repository
+    shutil.rmtree('/tmp/{}'.format(repo_name))
 
 
 if __name__ == '__main__':
