@@ -133,22 +133,22 @@ def filter_aliases_by_attribute(contributors: List[Contributor], attribute: str)
             if i == j:
                 continue
 
-            if is_alias(value, data[j]):
+            if is_alias(value, data[j], similarity_measure, threshold):
                 if (j, i) not in detected_aliases:
                     detected_aliases.append((i, j))
 
     return detected_aliases
 
 
-def is_alias(string1, string2):
-    if similarity_measure == 'jaro' or similarity_measure == 'custom':
-        return jellyfish.jaro_distance(string1, string2) > (threshold if threshold else 0.70)
+def is_alias(string1, string2, measure, _threshold):
+    if measure == 'jaro' or measure == 'custom':
+        return jellyfish.jaro_similarity(string1, string2) > (_threshold if _threshold else 0.70)
 
-    if similarity_measure == 'levenshtein':
-        return jellyfish.levenshtein_distance(string1, string2) < (threshold if threshold else 5)
+    if measure == 'levenshtein':
+        return jellyfish.levenshtein_distance(string1, string2) < (_threshold if _threshold else 5)
 
-    if similarity_measure == 'hamming':
-        return jellyfish.hamming_distance(string1, string2) < (threshold if threshold else 5)
+    if measure == 'hamming':
+        return jellyfish.hamming_distance(string1, string2) < (_threshold if _threshold else 5)
 
 
 def dfs(adj_list, visited, vertex, result, key):
