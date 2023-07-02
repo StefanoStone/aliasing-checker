@@ -202,24 +202,24 @@ def export_contributors(contributors, save_path):
         return
 
 
-def export_persons(persons, save_path):
+def export_people(people, save_path):
     os.makedirs(save_path, exist_ok=True)
     if output_mode == 'txt':
-        with open(os.path.join(save_path, 'list_of_persons.txt'), 'w', encoding='utf8') as f:
-            for person in persons:
+        with open(os.path.join(save_path, 'list_of_people.txt'), 'w', encoding='utf8') as f:
+            for person in people:
                 f.write(person.get_contributor_string(include_aliases=True) + '\n')
         return
 
     if output_mode == 'json':
-        with open(os.path.join(save_path, 'list_of_persons.json'), 'w', encoding='utf8') as f:
-            json.dump([person.__dict__(include_aliases=True) for person in persons], f, indent=4)
+        with open(os.path.join(save_path, 'list_of_people.json'), 'w', encoding='utf8') as f:
+            json.dump([person.__dict__(include_aliases=True) for person in people], f, indent=4)
         return
 
     if output_mode == 'csv':
         # puts a column named alias_of at the end of the csv file, which is the id of the person that the alias belongs
         # to if the alias belongs to a person, otherwise it is None
         _list = []
-        for person in persons:
+        for person in people:
             person_dict = person.__data__()
             person_dict.append(None)
             _list.append(person_dict)
@@ -228,7 +228,7 @@ def export_persons(persons, save_path):
                 alias_dict.append(person.id)
                 _list.append(alias_dict)
 
-        with open(os.path.join(save_path, 'list_of_persons.csv'), 'w', encoding='utf8', newline='') as stream:
+        with open(os.path.join(save_path, 'list_of_people.csv'), 'w', encoding='utf8', newline='') as stream:
             writer = csv.writer(stream)
             writer.writerow(['id', 'name', 'email', 'commits', 'alias_of'])
             writer.writerows(iter(_list))
@@ -248,7 +248,6 @@ def get_working_files(contributor):
     for commit in contributor.commits:
         files.extend(commit.modified_files)
 
-    print(files, len(files))
     return list(set(files))
 
 
@@ -260,19 +259,22 @@ def get_working_date_range(contributor):
     return min(dates), max(dates)
 
 
-def perform_custom_heuristics(persons):
-    new_persons = []
+def perform_custom_heuristics(people):
+    new_people = []
     week_delta = datetime.timedelta(days=7)
 
-    for person in persons:
+    for person in people:
         # if the similarity heuristic is not satisfied, then the person has no aliases to check
         if len(person.aliases) == 0:
-            new_persons.append(person)
+            new_people.append(person)
             continue
 
-        person_branches = get_working_branches(person)
-        person_files = get_working_files(person)
-        person_start_date, person_end_date = get_working_date_range(person)
+        try:
+            person_branches = get_working_branches(person)
+            person_files = get_working_files(person)
+            person_start_date, person_end_date = get_working_date_range(person)
+        except Exception as e:
+            raise Exception('Error while performing custom heuristics, something went wrong with pydriller')
 
         for alias in person.aliases:
             # if the alias has the same name or email as the person, then it is an alias
@@ -281,21 +283,21 @@ def perform_custom_heuristics(persons):
 
             # if the alias has more than 20 commits, it is probably not an alias
             if len(alias.commits) > 20:
-                new_persons.append(alias)
+                new_people.append(alias)
                 person.aliases.remove(alias)
                 continue
 
             # if the alias worked on different branches than the person, then it is probably not an alias
             alias_branches = get_working_branches(alias)
             if len(set(person_branches).intersection(set(alias_branches))) == 0:
-                new_persons.append(alias)
+                new_people.append(alias)
                 person.aliases.remove(alias)
                 continue
 
             # if the alias worked on different files than the person, then it is probably not an alias
             alias_files = get_working_files(alias)
             if len(set(person_files).intersection(set(alias_files))) == 0:
-                new_persons.append(alias)
+                new_people.append(alias)
                 person.aliases.remove(alias)
                 continue
 
@@ -303,15 +305,15 @@ def perform_custom_heuristics(persons):
             # consider a week delta to account for the fact that the person and the alias might have worked
             # on the same project, but at different times
             alias_start_date, alias_end_date = get_working_date_range(alias)
-            if alias_start_date > (person_end_date + week_delta)\
+            if alias_start_date > (person_end_date + week_delta) \
                     or alias_end_date < (person_start_date + week_delta):
-                new_persons.append(alias)
+                new_people.append(alias)
                 person.aliases.remove(alias)
                 continue
 
-        new_persons.append(person)
+        new_people.append(person)
 
-    return new_persons
+    return new_people
 
 
 def init_git_submodules(repo_name):
@@ -373,15 +375,20 @@ def _main(_args):
             contributors[alias_group[index_with_highest_commits]].merge_alias(contributors[alias_group[i]])
             index_to_delete.append(alias_group[i])
 
-    persons = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
+    people = [contributors[i] for i in range(len(contributors)) if i not in index_to_delete]
 
     # perform custom heuristics to remove false positives
     if similarity_measure == 'custom':
-        persons = perform_custom_heuristics(persons)
+        try:
+            people = perform_custom_heuristics(people)
+        except Exception as e:
+            shutil.rmtree('/tmp/{}'.format(repo_name))
+            print('Error while performing custom heuristics, something went wrong with pydriller'
+                  'try using a different similarity measure')
 
     # save results in the desired format
     export_contributors(contributors, _args.output_path)
-    export_persons(persons, _args.output_path)
+    export_people(people, _args.output_path)
 
     # remove the cloned repository
     shutil.rmtree('/tmp/{}'.format(repo_name))
