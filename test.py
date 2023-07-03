@@ -39,3 +39,26 @@ def test_alias_levenshtein_false():
 def test_alias_hamming_false():
     results = is_alias("alias", "name", 'hamming', 5)
     assert results == False
+
+
+def test_merge_alias():
+    edges = [(5, 15), (8, 52), (23, 49), (23, 24)]
+    expected_results = {
+        3: [5, 15], 2: [8, 52], 1: [23, 49, 24]
+    }.values()
+    results = merge_aliases(edges)
+    assert list(results) == list(expected_results)
+
+
+def test_extract_name():
+    email = "test@test.com"
+    expected_name = "test"
+    name = extract_name_from_email(email)
+    assert name == expected_name
+
+
+def test_extract_name_false():
+    email = "test@test.com"
+    expected_name = "test1"
+    name = extract_name_from_email(email)
+    assert name != expected_name

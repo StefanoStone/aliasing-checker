@@ -165,7 +165,7 @@ def merge_aliases(edges):
     :param edges: list of tuples (alias1, alias2)
     :return: merged aliases
     """
-    #
+
     adj_list = defaultdict(list)
     for x, y in edges:
         adj_list[x].append(y)
@@ -382,7 +382,7 @@ def _main(_args):
         try:
             people = perform_custom_heuristics(people)
         except Exception as e:
-            shutil.rmtree('/tmp/{}'.format(repo_name))
+            # shutil.rmtree('/tmp/{}'.format(repo_name))
             print('Error while performing custom heuristics, something went wrong with pydriller'
                   'try using a different similarity measure')
 
@@ -391,7 +391,7 @@ def _main(_args):
     export_people(people, _args.output_path)
 
     # remove the cloned repository
-    shutil.rmtree('/tmp/{}'.format(repo_name))
+    # shutil.rmtree('/tmp/{}'.format(repo_name))
 
 
 if __name__ == '__main__':
