@@ -106,3 +106,11 @@ def test_get_files():
     expected_files = ['Secao.java', 'Arquivo.java', 'Capitulo.java', 'Aluno.java',
                       'Secao.javax', 'Matricula.javax', 'Matricula.java']
     assert set_files_names == set(expected_files) and len(files) == 15
+
+
+def test_alias_merge():
+    user1 = Contributor(1, 'test1', 'test1@test.com', [1, 2])
+    user2 = Contributor(2, 'test2', 'test2@test.com', [3, 4])
+    user1.merge_alias(user2)
+
+    assert user1.total_commits == 4 and len(user1.aliases) == 1 and user1.aliases[0].id == 2
