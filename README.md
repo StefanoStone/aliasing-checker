@@ -26,5 +26,5 @@ use the following command to run the tests:
 ```
 pytest test.py
 ```
-to test the functionality based on pydriller, a repository named "small_repo" is used.
+to test the functionality based on pydriller, "test_repos" contains all the repositories that can be used in the test functions.
 It is a small repository provided by pydriller. The repository is located in the main folder of the project.
