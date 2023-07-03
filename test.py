@@ -1,5 +1,3 @@
-import datetime
-
 from main import *
 
 
@@ -96,3 +94,15 @@ def test_get_dates():
 
     assert start == expected_start and end == expected_end
 
+
+def test_get_files():
+    git_repo = Repository('test_repos/complex_repo')
+    commits = list(git_repo.traverse_commits())
+    contributors = get_contributors_set_from_commits(commits)
+    files = get_working_files(contributors[0])
+    files_names = [file.filename for file in files if file.filename.endswith('.java')
+                   or file.filename.endswith('.javax')]
+    set_files_names = set(files_names)
+    expected_files = ['Secao.java', 'Arquivo.java', 'Capitulo.java', 'Aluno.java',
+                      'Secao.javax', 'Matricula.javax', 'Matricula.java']
+    assert set_files_names == set(expected_files) and len(files) == 15

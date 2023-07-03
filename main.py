@@ -3,7 +3,6 @@ import json
 import os
 import re
 import csv
-import shutil
 import jellyfish
 import datetime
 import subprocess
