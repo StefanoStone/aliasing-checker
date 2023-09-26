@@ -6,6 +6,7 @@
 .DS_Store
 .AppleDouble
 .LSOverride
+./test_repos/
 
 # Icon must end with two \r
 Icon
