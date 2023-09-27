@@ -7,7 +7,7 @@
 .AppleDouble
 .LSOverride
 ./test_repos/
-
+./tmp/
 # Icon must end with two \r
 Icon
 
