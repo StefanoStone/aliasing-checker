@@ -179,38 +179,38 @@ def merge_aliases(edges):
     return result.values()
 
 
-def export_contributors(contributors, save_path):
+def export_contributors(contributors, save_path, name='list_of_contributors', output_mode='json'):
     os.makedirs(save_path, exist_ok=True)
 
     if output_mode == 'txt':
-        with open(os.path.join(save_path, 'list_of_contributors.txt'), 'w', encoding='utf8') as f:
+        with open(os.path.join(save_path, f'{name}.txt'), 'w', encoding='utf8') as f:
             for contributor in contributors:
                 f.write(contributor.get_contributor_string(include_aliases=False) + '\n')
         return
 
     if output_mode == 'json':
-        with open(os.path.join(save_path, 'list_of_contributors.json'), 'w', encoding='utf8') as f:
+        with open(os.path.join(save_path, f'{name}.json'), 'w', encoding='utf8') as f:
             json.dump([contributor.__dict__() for contributor in contributors], f, indent=4)
         return
 
     if output_mode == 'csv':
-        with open(os.path.join(save_path, 'list_of_contributors.csv'), 'w', encoding='utf8', newline='') as stream:
+        with open(os.path.join(save_path, f'{name}.csv'), 'w', encoding='utf8', newline='') as stream:
             writer = csv.writer(stream)
             writer.writerow(['id', 'name', 'email', 'commits'])
             writer.writerows(contributors)
         return
 
 
-def export_people(people, save_path):
+def export_people(people, save_path, name='list_of_people'):
     os.makedirs(save_path, exist_ok=True)
     if output_mode == 'txt':
-        with open(os.path.join(save_path, 'list_of_people.txt'), 'w', encoding='utf8') as f:
+        with open(os.path.join(save_path, f'{name}.txt'), 'w', encoding='utf8') as f:
             for person in people:
                 f.write(person.get_contributor_string(include_aliases=True) + '\n')
         return
 
     if output_mode == 'json':
-        with open(os.path.join(save_path, 'list_of_people.json'), 'w', encoding='utf8') as f:
+        with open(os.path.join(save_path, f'{name}.json'), 'w', encoding='utf8') as f:
             json.dump([person.__dict__(include_aliases=True) for person in people], f, indent=4)
         return
 
@@ -227,7 +227,7 @@ def export_people(people, save_path):
                 alias_dict.append(person.id)
                 _list.append(alias_dict)
 
-        with open(os.path.join(save_path, 'list_of_people.csv'), 'w', encoding='utf8', newline='') as stream:
+        with open(os.path.join(save_path, f'{name}.csv'), 'w', encoding='utf8', newline='') as stream:
             writer = csv.writer(stream)
             writer.writerow(['id', 'name', 'email', 'commits', 'alias_of'])
             writer.writerows(iter(_list))
@@ -341,7 +341,7 @@ def _main(_args):
     git_repo = Repository(_args.repo_path, only_no_merge=True, clone_repo_to='/tmp')
     repo_name = _args.repo_path.split('/')[-1]
 
-    if os.path.exists('/tmp/{}/.gitmodules'.format(repo_name)):
+    if os.path.exists('./tmp/{}/.gitmodules'.format(repo_name)):
         init_git_submodules(repo_name)
 
     commits = list(git_repo.traverse_commits())
@@ -389,7 +389,7 @@ def _main(_args):
     export_contributors(contributors, _args.output_path)
     export_people(people, _args.output_path)
 
-    # remove the cloned repository
+    # TODO remove the cloned repository
     # shutil.rmtree('/tmp/{}'.format(repo_name))
 
 
@@ -406,6 +406,8 @@ if __name__ == '__main__':
                                                               ' > 0.70 for jaro, < 5 for levenshtein and hamming')
     parser.add_argument('-a', '--attribute', type=str, help='Attribute to use for alias detection, default is all',
                         default='all', choices=['all', 'email', 'name'])
+    # TODO finish implementing this argument
+    # parser.add_argument('-on', '--output-name', type=str, help='Output name, default is list_of_{item}')
 
     args = parser.parse_args()
     output_mode = args.output_mode
